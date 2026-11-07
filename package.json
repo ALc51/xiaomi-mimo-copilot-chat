@@ -1,0 +1,248 @@
+{
+  "name": "xiaomi-mimo-copilot-chat",
+  "displayName": "Xiaomi MiMo For Copilot Chat",
+  "description": "将 Xiaomi MiMo（V2.6 Flash / Pro）接入 GitHub Copilot Chat：Ask / Edit / Agent，含控制中心、账单与 Debug。",
+  "version": "0.1.43",
+  "publisher": "ALc51",
+  "license": "MIT",
+  "homepage": "https://github.com/ALc51/xiaomi-mimo-copilot-chat",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ALc51/xiaomi-mimo-copilot-chat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ALc51/xiaomi-mimo-copilot-chat/issues"
+  },
+  "icon": "media/mimo-icon.png",
+  "keywords": [
+    "xiaomi",
+    "mimo",
+    "copilot",
+    "chat",
+    "language model",
+    "byok",
+    "agent"
+  ],
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "extensionDependencies": [
+    "GitHub.copilot-chat"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "icons": {
+      "xiaomi-mimo": {
+        "description": "Xiaomi MiMo",
+        "default": {
+          "fontPath": "./media/fonts/mimo-icons.woff",
+          "fontCharacter": "\\e001"
+        }
+      }
+    },
+    "languageModelChatProviders": [
+      {
+        "vendor": "xiaomi-mimo",
+        "displayName": "Xiaomi MiMo",
+        "managementCommand": "xiaomi-mimo.manage",
+        "icon": {
+          "light": "media/mimo-icon-light.svg",
+          "dark": "media/mimo-icon-dark.svg"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "xiaomi-mimo.manage",
+        "title": "Xiaomi MiMo: Manage API Key"
+      },
+      {
+        "command": "xiaomi-mimo.clearKey",
+        "title": "Xiaomi MiMo: Clear API Key"
+      },
+      {
+        "command": "xiaomi-mimo.refreshModels",
+        "title": "Xiaomi MiMo: Refresh Models"
+      },
+      {
+        "command": "xiaomi-mimo.status.open",
+        "title": "Xiaomi MiMo: Open Control Center",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "xiaomi-mimo.status.openConsole",
+        "title": "Xiaomi MiMo: Open Console"
+      },
+      {
+        "command": "xiaomi-mimo.status.refreshHover",
+        "title": "Xiaomi MiMo: Refresh Status"
+      },
+      {
+        "command": "xiaomi-mimo.debug.open",
+        "title": "Xiaomi MiMo: Open Debug",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "xiaomi-mimo.debug.clear",
+        "title": "Xiaomi MiMo: Clear Debug Log",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "xiaomi-mimo.debug.openDetail",
+        "title": "Xiaomi MiMo: Open Debug Detail",
+        "icon": "$(json)"
+      },
+      {
+        "command": "xiaomi-mimo.debug.refresh",
+        "title": "Xiaomi MiMo: Refresh Debug",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "xiaomi-mimo.controlCenter.focus",
+        "title": "Xiaomi MiMo: Open Control Center",
+        "icon": "$(dashboard)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "xiaomi-mimo",
+          "title": "Xiaomi MiMo",
+          "icon": "media/mimo-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "xiaomi-mimo": [
+        {
+          "type": "webview",
+          "id": "xiaomiMimo.controlCenter",
+          "name": "控制中心",
+          "contextualTitle": "Xiaomi MiMo 控制中心"
+        },
+        {
+          "id": "xiaomiMimo.debug",
+          "name": "Debug 树",
+          "contextualTitle": "Xiaomi MiMo Debug"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "xiaomi-mimo.debug.refresh",
+          "when": "view == xiaomiMimo.debug",
+          "group": "navigation@1"
+        },
+        {
+          "command": "xiaomi-mimo.debug.clear",
+          "when": "view == xiaomiMimo.debug",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "xiaomi-mimo.debug.openDetail",
+          "when": "view == xiaomiMimo.debug && viewItem == mimoDebugTurn",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Xiaomi MiMo",
+      "properties": {
+        "xiaomiMimo.baseUrl": {
+          "type": "string",
+          "default": "https://api.xiaomimimo.com/v1",
+          "description": "MiMo OpenAI-compatible Base URL. Use Token Plan URL from console when subscribed."
+        },
+        "xiaomiMimo.thinking": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "enabled",
+            "disabled"
+          ],
+          "default": "auto",
+          "description": "Deep thinking mode. auto/enabled both disable thinking when the request includes tools or web_search (official FAQ for stable tool_calls). Cross-turn reasoning_content still relies on Copilot replaying ThinkingPart."
+        },
+        "xiaomiMimo.maxCompletionTokens": {
+          "type": "number",
+          "default": 131072,
+          "minimum": 1,
+          "maximum": 131072,
+          "description": "max_completion_tokens (includes thinking tokens when thinking is enabled)."
+        },
+        "xiaomiMimo.webSearch": {
+          "type": "boolean",
+          "default": false,
+          "description": "Append MiMo web_search tool (requires plugin enabled in MiMo console)."
+        },
+        "xiaomiMimo.requestTimeoutMs": {
+          "type": "number",
+          "default": 300000,
+          "description": "HTTP/SSE request timeout in milliseconds."
+        },
+        "xiaomiMimo.showPerfInChatStatus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Tokens/s, Cache, First token, and Cost via Chat Status (when available)."
+        },
+        "xiaomiMimo.showPerfStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Tokens/s, Cache, First token, and Cost in the VS Code status bar."
+        },
+        "xiaomiMimo.estimateCurrency": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "cny",
+            "usd"
+          ],
+          "default": "auto",
+          "description": "Currency for pay-as-you-go cost (official MiMo pricing). auto picks CNY unless Base URL looks overseas; Token Plan shows no money amount."
+        },
+        "xiaomiMimo.debugLogRequests": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write per-request summaries (model, latency, tools, usage) to the Xiaomi MiMo Output channel. Does not include API keys."
+        },
+        "xiaomiMimo.debugLogBodies": {
+          "type": "boolean",
+          "default": false,
+          "description": "When debugLogRequests is on, also write a redacted/truncated request body preview to the Output channel."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test \"./out/**/*.test.js\"",
+    "package": "vsce package --no-dependencies --baseContentUrl https://github.com/ALc51/xiaomi-mimo-copilot-chat/raw/main/ --baseImagesUrl https://github.com/ALc51/xiaomi-mimo-copilot-chat/raw/main/"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.104.0",
+    "@vscode/vsce": "^3.2.2",
+    "fantasticon": "^4.1.0",
+    "svg2ttf": "^6.1.0",
+    "ttf2woff": "^3.0.0",
+    "typescript": "^5.9.2"
+  },
+  "allowScripts": {
+    "ttf2woff2@8.0.1": true
+  }
+}
+
