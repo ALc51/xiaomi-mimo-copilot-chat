@@ -113,3 +113,4 @@ describe('sessionStats', () => {
 		assert.equal(fired, 2); // Listener unsubscribed
 	});
 });
+

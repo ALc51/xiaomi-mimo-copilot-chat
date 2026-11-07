@@ -72,3 +72,4 @@ describe('debugStore', () => {
 		assert.equal(store.get('t2'), undefined);
 	});
 });
+
