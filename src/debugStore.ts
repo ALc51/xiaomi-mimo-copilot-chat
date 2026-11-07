@@ -42,6 +42,7 @@ const DEFAULT_CAPACITY = 100;
 
 export class DebugStore {
 	private readonly turns: ModelTurn[] = [];
+	private readonly index = new Map<string, ModelTurn>();
 	private readonly _onDidChange = new vscode.EventEmitter<void>();
 	readonly onDidChange = this._onDidChange.event;
 
@@ -52,17 +53,25 @@ export class DebugStore {
 	}
 
 	get(id: string): ModelTurn | undefined {
-		return this.turns.find((t) => t.id === id);
+		return this.index.get(id);
 	}
 
 	upsert(turn: ModelTurn): void {
-		const idx = this.turns.findIndex((t) => t.id === turn.id);
-		if (idx >= 0) {
-			this.turns[idx] = turn;
+		const existing = this.index.get(turn.id);
+		if (existing) {
+			const idx = this.turns.findIndex((t) => t.id === turn.id);
+			if (idx >= 0) {
+				this.turns[idx] = turn;
+			}
+			this.index.set(turn.id, turn);
 		} else {
 			this.turns.unshift(turn);
+			this.index.set(turn.id, turn);
 			while (this.turns.length > this.capacity) {
-				this.turns.pop();
+				const evicted = this.turns.pop();
+				if (evicted) {
+					this.index.delete(evicted.id);
+				}
 			}
 		}
 		this._onDidChange.fire();
@@ -73,10 +82,12 @@ export class DebugStore {
 			return;
 		}
 		this.turns.length = 0;
+		this.index.clear();
 		this._onDidChange.fire();
 	}
 
 	dispose(): void {
+		this.index.clear();
 		this._onDidChange.dispose();
 	}
 }

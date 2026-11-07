@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import * as vscode from 'vscode';
 import type { CostEstimate } from './pricing';
 import { formatMoney } from './pricing';
 import type { ApiUsage } from './usage';
@@ -24,7 +24,9 @@ export interface SessionStatsSnapshot {
 	baseUrl: string;
 }
 
-class SessionStats extends EventEmitter {
+export class SessionStats {
+	private readonly _onDidChange = new vscode.EventEmitter<void>();
+	readonly onDidChange = this._onDidChange.event;
 	private turnCount = 0;
 	private sessionAmount = 0;
 	private sessionCurrency: 'CNY' | 'USD' | undefined;
@@ -57,7 +59,7 @@ class SessionStats extends EventEmitter {
 			cost: opts.cost,
 			at: Date.now(),
 		};
-		this.emit('change');
+		this._onDidChange.fire();
 	}
 
 	clear(): void {
@@ -65,7 +67,7 @@ class SessionStats extends EventEmitter {
 		this.sessionAmount = 0;
 		this.sessionCurrency = undefined;
 		this.last = undefined;
-		this.emit('change');
+		this._onDidChange.fire();
 	}
 
 	snapshot(): SessionStatsSnapshot {
@@ -89,9 +91,12 @@ class SessionStats extends EventEmitter {
 		};
 	}
 
-	onChange(listener: () => void): { dispose(): void } {
-		this.on('change', listener);
-		return { dispose: () => this.off('change', listener) };
+	onChange(listener: () => void): vscode.Disposable {
+		return this._onDidChange.event(listener);
+	}
+
+	dispose(): void {
+		this._onDidChange.dispose();
 	}
 }
 

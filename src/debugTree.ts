@@ -368,25 +368,29 @@ export class MimoDebugContentProvider implements vscode.TextDocumentContentProvi
 	private readonly _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 	readonly onDidChange = this._onDidChange.event;
 	private readonly sub: vscode.Disposable;
+	private readonly activeTurnIds = new Set<string>();
 
 	constructor() {
 		this.sub = debugStore.onDidChange(() => {
-			for (const turn of debugStore.list()) {
-				this._onDidChange.fire(turnDetailUri(turn.id));
+			for (const id of this.activeTurnIds) {
+				this._onDidChange.fire(turnDetailUri(id));
 			}
 		});
 	}
 
 	provideTextDocumentContent(uri: vscode.Uri): string {
 		const id = uri.path.replace(/^\//, '').replace(/\.(md|json)$/, '');
+		this.activeTurnIds.add(id);
 		const turn = debugStore.get(id);
 		if (!turn) {
+			this.activeTurnIds.delete(id);
 			return `# Turn not found\n\n\`${id}\` is no longer in the debug buffer.`;
 		}
 		return renderTurnMarkdown(turn);
 	}
 
 	dispose(): void {
+		this.activeTurnIds.clear();
 		this.sub.dispose();
 		this._onDidChange.dispose();
 	}

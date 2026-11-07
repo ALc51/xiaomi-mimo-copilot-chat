@@ -470,15 +470,17 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 	}
 }
 
+const CJK_PATTERN = /[\u2E80-\u9FFF\uF900-\uFAFF\u3040-\u30FF\uAC00-\uD7AF\uFF00-\uFFEF]/;
+
 function estimateTokens(s: string): number {
 	if (!s) {
 		return 0;
 	}
-	// Mix of CJK / Latin heuristic
+	// Mix of CJK (Chinese, Japanese, Korean, full-width) / Latin heuristic
 	let cjk = 0;
 	let other = 0;
 	for (const ch of s) {
-		if (/[\u3400-\u9FFF]/.test(ch)) {
+		if (CJK_PATTERN.test(ch)) {
 			cjk++;
 		} else {
 			other++;

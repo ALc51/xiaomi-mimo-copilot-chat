@@ -97,6 +97,7 @@ export async function buildOverviewPayload(
 
 	if (!apiKey) {
 		balanceLabel = '—';
+		balanceHint = '未配置 API Key';
 		balanceError = '未配置 API Key';
 		quotaHero = '额度不可用';
 		quotaError = '未配置 API Key';
