@@ -21,7 +21,7 @@
 
 ## 快速开始
 
-1. 安装本扩展（Marketplace 或 `code --install-extension xiaomi-mimo-copilot-chat-*.vsix`）
+1. 安装本扩展（Marketplace 搜 `ALc51.xiaomi-mimo-for-copilot-chat`，或 `code --install-extension xiaomi-mimo-for-copilot-chat-*.vsix`）
 2. 命令面板 → **Xiaomi MiMo: Manage API Key** → 保存 Key  
    （清除 Key 后模型列表会变空，属预期）
 3. 打开 **语言模型**，在 **Xiaomi MiMo** 分组下勾选要用的模型
