@@ -6,6 +6,16 @@ export function friendlyModelName(modelId: string): string {
 	return resolveOverlay(modelId).name;
 }
 
+export function formatDuration(ms: number | undefined, fallback = '—'): string {
+	if (ms === undefined) {
+		return fallback;
+	}
+	if (ms >= 1000) {
+		return `${(ms / 1000).toFixed(1)}s`;
+	}
+	return `${ms}ms`;
+}
+
 export function formatStatusBarText(opts: {
 	tokPerSec?: number;
 	usage: ApiUsage;

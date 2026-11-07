@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { randomUUID } from 'crypto';
 import { getApiKey } from './auth';
 import {
 	buildDebugTurnCards,
@@ -20,12 +21,7 @@ export const CONTROL_CENTER_VIEW_ID = 'xiaomiMimo.controlCenter';
 export const FOCUS_CONTROL_CENTER_COMMAND = 'xiaomi-mimo.controlCenter.focus';
 
 function getWebviewNonce(): string {
-	const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	let out = '';
-	for (let i = 0; i < 32; i++) {
-		out += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-	}
-	return out;
+	return randomUUID().replace(/-/g, '');
 }
 
 export interface ControlCenterPayload {
@@ -114,6 +110,20 @@ type WebviewMessage =
 	| { type: 'clearDebug' }
 	| { type: 'openTurnDetail'; turnId?: string }
 	| { type: 'showOutputChannel' };
+
+const ALLOWED_WEBVIEW_MESSAGE_TYPES = new Set<string>([
+	'ready',
+	'selectTab',
+	'refresh',
+	'openConsole',
+	'openSettings',
+	'manageKey',
+	'clearKey',
+	'openDebug',
+	'clearDebug',
+	'openTurnDetail',
+	'showOutputChannel',
+]);
 
 class ControlCenterProvider implements vscode.WebviewViewProvider {
 	private view?: vscode.WebviewView;
@@ -251,20 +261,7 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
 		if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') {
 			return;
 		}
-		const allowed = new Set([
-			'ready',
-			'selectTab',
-			'refresh',
-			'openConsole',
-			'openSettings',
-			'manageKey',
-			'clearKey',
-			'openDebug',
-			'clearDebug',
-			'openTurnDetail',
-			'showOutputChannel',
-		]);
-		if (!allowed.has(msg.type)) {
+		if (!ALLOWED_WEBVIEW_MESSAGE_TYPES.has(msg.type)) {
 			return;
 		}
 		switch (msg.type) {

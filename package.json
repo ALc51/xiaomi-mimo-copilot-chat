@@ -2,7 +2,7 @@
   "name": "xiaomi-mimo-for-copilot-chat",
   "displayName": "MiMo Control Center for Copilot Chat",
   "description": "将 Xiaomi MiMo（V2.6 Flash / Pro）接入 GitHub Copilot Chat：Ask / Edit / Agent，含控制中心、账单与 Debug。",
-  "version": "0.1.45",
+  "version": "0.1.46",
   "publisher": "ALc51",
   "license": "MIT",
   "homepage": "https://github.com/ALc51/xiaomi-mimo-copilot-chat",
@@ -228,7 +228,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node --test \"./out/**/*.test.js\"",
+    "test": "npm run compile && node --require ./scripts/test-preload.cjs --test \"./out/**/*.test.js\"",
     "package": "vsce package --no-dependencies --baseContentUrl https://github.com/ALc51/xiaomi-mimo-copilot-chat/raw/main/ --baseImagesUrl https://github.com/ALc51/xiaomi-mimo-copilot-chat/raw/main/"
   },
   "devDependencies": {

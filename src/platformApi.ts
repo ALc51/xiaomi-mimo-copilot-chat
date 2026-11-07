@@ -198,7 +198,7 @@ export async function fetchTokenPlanQuota(
 	};
 }
 
-/** Human-readable reset hint from UTC period end, e.g. `在 08:00 重置 12月1日`. */
+/** Human-readable reset hint from UTC period end in Beijing time (UTC+8), e.g. `在 08:00 重置 12月1日`. */
 export function formatResetHint(periodEndUtc: string): string {
 	if (!periodEndUtc) {
 		return '重置时间未知';
@@ -208,10 +208,12 @@ export function formatResetHint(periodEndUtc: string): string {
 	if (Number.isNaN(d.getTime())) {
 		return periodEndUtc;
 	}
-	const month = d.getMonth() + 1;
-	const day = d.getDate();
-	const hh = String(d.getHours()).padStart(2, '0');
-	const mm = String(d.getMinutes()).padStart(2, '0');
+	// Convert to Beijing time (UTC+8)
+	const beijingDate = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+	const month = beijingDate.getUTCMonth() + 1;
+	const day = beijingDate.getUTCDate();
+	const hh = String(beijingDate.getUTCHours()).padStart(2, '0');
+	const mm = String(beijingDate.getUTCMinutes()).padStart(2, '0');
 	return `在 ${hh}:${mm} 重置 ${month}月${day}日`;
 }
 

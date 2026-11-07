@@ -8,6 +8,8 @@ import { clearReasoningCache } from './messageConverter';
 import { registerStatusHover } from './statusHover';
 import { registerControlCenter } from './controlCenter';
 import { registerStatusPanel } from './statusPanel';
+import { disposeMimoOutput } from './output';
+import { disposeBillingHistory } from './billingHistory';
 
 export function activate(context: vscode.ExtensionContext): void {
 	const perf = new PerfStatus(context);
@@ -16,7 +18,9 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.lm.registerLanguageModelChatProvider('xiaomi-mimo', provider),
 		{ dispose: () => debugStore.dispose() },
-		{ dispose: () => clearReasoningCache() }
+		{ dispose: () => clearReasoningCache() },
+		{ dispose: () => disposeBillingHistory() },
+		{ dispose: () => disposeMimoOutput() }
 	);
 
 	registerStatusPanel(context);
@@ -91,4 +95,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
 	clearReasoningCache();
+	disposeBillingHistory();
+	disposeMimoOutput();
 }

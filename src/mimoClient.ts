@@ -186,7 +186,7 @@ async function consumeSse(body: ReadableStream<Uint8Array>, handlers: StreamHand
 						prev.id = tc.id;
 					}
 					if (typeof fn.name === 'string' && fn.name) {
-						prev.name += fn.name;
+						prev.name = fn.name;
 					}
 					if (typeof fn.arguments === 'string') {
 						prev.arguments += fn.arguments;

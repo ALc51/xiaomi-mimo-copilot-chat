@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { friendlyModelName } from './display';
+import { friendlyModelName, formatDuration as fmtDuration } from './display';
 import { formatCacheHitPercent } from './usage';
 import { debugStore, ModelTurn, ModelTurnToolCall } from './debugStore';
 
@@ -27,13 +27,7 @@ function formatTokens(n: number | undefined): string {
 }
 
 function formatDuration(ms: number | undefined): string {
-	if (ms === undefined) {
-		return 'N/A';
-	}
-	if (ms >= 1000) {
-		return `${(ms / 1000).toFixed(1)}s`;
-	}
-	return `${ms}ms`;
+	return fmtDuration(ms, 'N/A');
 }
 
 function turnLabel(turn: ModelTurn): string {

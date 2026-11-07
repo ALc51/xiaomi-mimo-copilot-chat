@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { assetBaseUrlForPlan, getApiKey, resolveBillingPlan } from './auth';
 import { keyFingerprint, lastNBillingDays } from './billingDays';
-import { friendlyModelName } from './display';
+import { friendlyModelName, formatDuration } from './display';
 import { debugStore, type ModelTurn } from './debugStore';
 import { fetchDailyUsage, type DailyUsageRecord } from './platformApi';
 import { formatMoney, type PricingCurrency } from './pricing';
@@ -91,16 +91,6 @@ function dayKey(ts: number): { key: string; label: string } {
 	const m = String(d.getMonth() + 1).padStart(2, '0');
 	const day = String(d.getDate()).padStart(2, '0');
 	return { key: `${y}-${m}-${day}`, label: `${m}-${day}` };
-}
-
-function formatDuration(ms: number | undefined): string {
-	if (ms === undefined) {
-		return '—';
-	}
-	if (ms >= 1000) {
-		return `${(ms / 1000).toFixed(1)}s`;
-	}
-	return `${ms}ms`;
 }
 
 function emptyPoint(label: string, date: string): DailyBillingPoint {
@@ -440,6 +430,14 @@ function scheduleBillingCooldownRetry(): void {
 		billingCooldownTimer = undefined;
 		void loadBillingPayload(ctx, { force: true });
 	}, delay);
+}
+
+export function disposeBillingHistory(): void {
+	if (billingCooldownTimer) {
+		clearTimeout(billingCooldownTimer);
+		billingCooldownTimer = undefined;
+	}
+	billingRetryContext = undefined;
 }
 
 /** Prefer official usage/daily (PAYG sk-); fall back to local debug buffer. */

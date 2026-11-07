@@ -103,13 +103,13 @@ function imageDataUrl(part: vscode.LanguageModelDataPart): string | undefined {
 	if (!mime.startsWith('image/')) {
 		return undefined;
 	}
+	const allowed = /^image\/(jpeg|jpg|png|gif|webp|bmp)$/i;
+	if (!allowed.test(mime)) {
+		throw new Error(`不支持的图片格式: ${mime}。支持 JPEG/PNG/GIF/WebP/BMP。`);
+	}
 	const b64 = Buffer.from(part.data).toString('base64');
 	if (b64.length > MAX_IMAGE_BASE64_CHARS) {
 		throw new Error(`图片 Base64 超过 50MB 限制（mime=${mime}）。`);
-	}
-	const allowed = /image\/(jpeg|jpg|png|gif|webp|bmp)/i;
-	if (!allowed.test(mime)) {
-		throw new Error(`不支持的图片格式: ${mime}。支持 JPEG/PNG/GIF/WebP/BMP。`);
 	}
 	return `data:${mime};base64,${b64}`;
 }
