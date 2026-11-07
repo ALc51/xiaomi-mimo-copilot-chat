@@ -1,8 +1,8 @@
 {
   "name": "xiaomi-mimo-for-copilot-chat",
-  "displayName": "Xiaomi MiMo For Copilot Chat",
+  "displayName": "MiMo Control Center for Copilot Chat",
   "description": "将 Xiaomi MiMo（V2.6 Flash / Pro）接入 GitHub Copilot Chat：Ask / Edit / Agent，含控制中心、账单与 Debug。",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "publisher": "ALc51",
   "license": "MIT",
   "homepage": "https://github.com/ALc51/xiaomi-mimo-copilot-chat",
