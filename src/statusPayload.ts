@@ -5,6 +5,7 @@ import { formatMoney, PRICE_SOURCE, type CostEstimate } from './pricing';
 import { sessionStats } from './sessionStats';
 import { getCachedAccountSnapshot, getCachedPlanMeta } from './statusHover';
 import { formatCacheHitPercent, formatTtft } from './usage';
+import { formatToolLoopAlertMessage, toolCallLoopGuard } from './toolCallLoopGuard';
 
 export interface OverviewPayload {
 	plan: 'payg' | 'token-plan' | 'unknown';
@@ -36,6 +37,8 @@ export interface OverviewPayload {
 	accountStale: boolean;
 	accountRateLimited: boolean;
 	accountFreshnessNote?: string;
+	/** Active consecutive identical tool-call warning (Agent loop). */
+	toolLoopWarning?: string;
 }
 
 export function costBarWidths(cost: CostEstimate | undefined): { a: number; b: number; c: number } {
@@ -116,6 +119,9 @@ export async function buildOverviewPayload(
 			? '账户数据可能已过期，打开侧栏或点刷新可更新。'
 			: undefined;
 
+	const loopAlert = toolCallLoopGuard.getAlert();
+	const toolLoopWarning = loopAlert ? formatToolLoopAlertMessage(loopAlert) : undefined;
+
 	return {
 		plan,
 		consoleTitle: plan === 'token-plan' ? '打开 Token Plan 控制台' : '打开官方控制台',
@@ -146,5 +152,6 @@ export async function buildOverviewPayload(
 		accountStale: account.stale,
 		accountRateLimited: account.rateLimited,
 		accountFreshnessNote: freshnessNote,
+		toolLoopWarning,
 	};
 }

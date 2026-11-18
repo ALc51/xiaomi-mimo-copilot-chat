@@ -2,7 +2,7 @@
   "name": "xiaomi-mimo-for-copilot-chat",
   "displayName": "MiMo Control Center for Copilot Chat",
   "description": "将 Xiaomi MiMo（V2.6 Flash / Pro）接入 GitHub Copilot Chat：Ask / Edit / Agent，含控制中心、账单与 Debug。",
-  "version": "0.1.46",
+  "version": "0.1.47",
   "publisher": "ALc51",
   "license": "MIT",
   "homepage": "https://github.com/ALc51/xiaomi-mimo-copilot-chat",
@@ -220,6 +220,13 @@
           "type": "boolean",
           "default": false,
           "description": "When debugLogRequests is on, also write a redacted/truncated request body preview to the Output channel."
+        },
+        "xiaomiMimo.toolCallLoopWarnAt": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 50,
+          "description": "Warn in Output / Control Center when the same tool call (name + args) repeats this many times in a row across Agent rounds. Set 0 to disable."
         }
       }
     }

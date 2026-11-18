@@ -582,7 +582,19 @@
     overviewPayload = p;
     body.classList.toggle("token-plan", p.plan === "token-plan");
     body.classList.toggle("exhausted", !!p.quotaExhausted);
+    body.classList.toggle("tool-loop", !!p.toolLoopWarning);
     $("banner-text").textContent = p.plan === "token-plan" ? "已达到配额" : "余额不足";
+    const loopBanner = $("banner-tool-loop");
+    const loopText = $("banner-tool-loop-text");
+    if (loopBanner && loopText) {
+      if (p.toolLoopWarning) {
+        loopBanner.hidden = false;
+        loopText.textContent = p.toolLoopWarning;
+      } else {
+        loopBanner.hidden = true;
+        loopText.textContent = "";
+      }
+    }
     const btnConsole = $("btn-console");
     if (btnConsole) btnConsole.title = p.consoleTitle;
     const icon = $("brand-icon");
@@ -754,6 +766,9 @@
       '<div class="k">状态</div><div class="v">' +
       escapeHtml(card.status) +
       "</div>" +
+      (card.loopWarning
+        ? '<div class="k">循环告警</div><div class="v warn">' + escapeHtml(card.loopWarning) + "</div>"
+        : "") +
       (card.error
         ? '<div class="k">错误</div><div class="v">' + escapeHtml(card.error) + "</div>"
         : "") +
@@ -839,6 +854,11 @@
     $("cfg-max-tok").textContent = String(s.maxCompletionTokens);
     $("cfg-websearch").textContent = s.webSearch ? "开启" : "关闭";
     $("cfg-currency").textContent = s.currency;
+    const loopCfg = $("cfg-tool-loop");
+    if (loopCfg) {
+      const n = Number(s.toolCallLoopWarnAt);
+      loopCfg.textContent = !n ? "关闭" : String(n) + " 次";
+    }
   }
 
   function setActiveTab(tab) {
@@ -895,8 +915,44 @@
     });
   }
 
+  let refreshToastTimer = 0;
+
+  function setRefreshUi(state, message) {
+    const btn = $("btn-refresh");
+    const toast = $("refresh-toast");
+    if (!btn || !toast) return;
+    if (refreshToastTimer) {
+      clearTimeout(refreshToastTimer);
+      refreshToastTimer = 0;
+    }
+    toast.classList.remove("is-loading", "is-ok", "is-error");
+    if (state === "loading") {
+      btn.disabled = true;
+      btn.textContent = "刷新中…";
+      toast.hidden = false;
+      toast.classList.add("is-loading");
+      toast.textContent = message || "正在刷新账户、账单与 Debug…";
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = "刷新";
+    toast.hidden = false;
+    toast.classList.add(state === "error" ? "is-error" : "is-ok");
+    toast.textContent = message || (state === "error" ? "刷新失败" : "已刷新");
+    refreshToastTimer = setTimeout(() => {
+      toast.hidden = true;
+      toast.textContent = "";
+      toast.classList.remove("is-loading", "is-ok", "is-error");
+      refreshToastTimer = 0;
+    }, state === "error" ? 5000 : 2800);
+  }
+
   function bindActions() {
-    $("btn-refresh").addEventListener("click", () => vscode && vscode.postMessage({ type: "refresh" }));
+    $("btn-refresh").addEventListener("click", () => {
+      if (!vscode) return;
+      setRefreshUi("loading");
+      vscode.postMessage({ type: "refresh" });
+    });
     $("btn-console").addEventListener("click", () => vscode && vscode.postMessage({ type: "openConsole" }));
     $("btn-open-settings").addEventListener("click", () =>
       vscode && vscode.postMessage({ type: "openSettings" })
@@ -930,6 +986,10 @@
     if (!msg) return;
     if (msg.type === "selectTab" && msg.tab) {
       setActiveTab(msg.tab);
+      return;
+    }
+    if (msg.type === "refreshState") {
+      setRefreshUi(msg.state, msg.message);
       return;
     }
     if (msg.type === "updateDebug") {

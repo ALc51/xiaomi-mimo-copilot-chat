@@ -53,6 +53,7 @@ export interface DebugTurnCard {
 	tools: number;
 	meta: string;
 	error?: string;
+	loopWarning?: string;
 }
 
 export interface BillingPayload {
@@ -79,6 +80,7 @@ export interface SettingsPayload {
 	maxCompletionTokens: number;
 	webSearch: boolean;
 	currency: string;
+	toolCallLoopWarnAt: number;
 }
 
 function isFlashModel(modelId: string): boolean {
@@ -562,6 +564,7 @@ export function buildDebugTurnCards(turns: readonly ModelTurn[] = debugStore.lis
 			turn.usage ? `Cache ${cache}` : undefined,
 			cost !== '—' ? cost : undefined,
 			tools ? `Tools ${tools}` : undefined,
+			turn.loopWarning ? '⚠ tool loop' : undefined,
 			turn.error ? turn.error.slice(0, 80) : undefined,
 		].filter(Boolean);
 		return {
@@ -574,6 +577,7 @@ export function buildDebugTurnCards(turns: readonly ModelTurn[] = debugStore.lis
 			tools,
 			meta: metaParts.join(' · '),
 			error: turn.error,
+			loopWarning: turn.loopWarning,
 		};
 	});
 }
@@ -601,5 +605,6 @@ export function buildSettingsPayload(
 		maxCompletionTokens: cfg.get<number>('maxCompletionTokens', 131072),
 		webSearch: cfg.get<boolean>('webSearch', false),
 		currency: cfg.get<string>('estimateCurrency', 'auto'),
+		toolCallLoopWarnAt: cfg.get<number>('toolCallLoopWarnAt', 3),
 	};
 }

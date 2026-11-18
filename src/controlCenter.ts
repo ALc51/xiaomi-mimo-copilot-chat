@@ -16,6 +16,7 @@ import { CONSOLE_TOKEN_PLAN, CONSOLE_USAGE } from './platformApi';
 import { getCachedBillingPlan, onAccountCacheChange, refreshAccountCache } from './statusHover';
 import { openTurnDetail } from './debugTree';
 import { getMimoOutput } from './output';
+import { toolCallLoopGuard } from './toolCallLoopGuard';
 
 export const CONTROL_CENTER_VIEW_ID = 'xiaomiMimo.controlCenter';
 export const FOCUS_CONTROL_CENTER_COMMAND = 'xiaomi-mimo.controlCenter.focus';
@@ -58,6 +59,10 @@ export function registerControlCenter(
 		}),
 		debugStore.onDidChange(() => {
 			// Debug must not wait on billing/balance network — that regressed empty Debug UI.
+			void provider.pushDebugSnapshot();
+		}),
+		toolCallLoopGuard.onDidChange(() => {
+			void provider.pushOverviewLite();
 			void provider.pushDebugSnapshot();
 		}),
 		vscode.workspace.onDidChangeConfiguration((e) => {
@@ -205,10 +210,35 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
-	async refresh(opts?: { forceAccount?: boolean; forceBilling?: boolean }): Promise<void> {
+	/** User clicked 刷新 — force network refresh and surface an in-panel toast. */
+	async refreshFromUser(): Promise<void> {
 		const webview = this.view?.webview;
 		if (!webview) {
 			return;
+		}
+		await webview.postMessage({ type: 'refreshState', state: 'loading' });
+		const result = await this.refresh({ forceAccount: true, forceBilling: true });
+		if (result.ok) {
+			await webview.postMessage({
+				type: 'refreshState',
+				state: 'done',
+				message: '已刷新账户余额、账单与 Debug',
+			});
+			return;
+		}
+		await webview.postMessage({
+			type: 'refreshState',
+			state: 'error',
+			message: `刷新失败：${result.error ?? '未知错误'}`,
+		});
+	}
+
+	async refresh(
+		opts?: { forceAccount?: boolean; forceBilling?: boolean }
+	): Promise<{ ok: boolean; error?: string }> {
+		const webview = this.view?.webview;
+		if (!webview) {
+			return { ok: false, error: '控制中心未打开' };
 		}
 		const forceAccount = opts?.forceAccount === true;
 		const forceBilling = opts?.forceBilling === true;
@@ -217,12 +247,12 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
 			// Always push debug first so UI stays live even if later HTTP fails.
 			await this.pushDebugSnapshot();
 			if (seq !== this.refreshSeq) {
-				return;
+				return { ok: true };
 			}
 
 			const exhausted = await refreshAccountCache(this.context, forceAccount);
 			if (seq !== this.refreshSeq) {
-				return;
+				return { ok: true };
 			}
 			this.onExhaustedChange?.(exhausted);
 
@@ -240,7 +270,7 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
 				loadBillingPayload(this.context, { force: forceBilling }),
 			]);
 			if (seq !== this.refreshSeq) {
-				return;
+				return { ok: true };
 			}
 
 			const payload: ControlCenterPayload = {
@@ -250,10 +280,13 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
 				settings,
 			};
 			await webview.postMessage({ type: 'update', payload });
+			return { ok: true };
 		} catch (err) {
-			getMimoOutput().appendLine(`[controlCenter] refresh failed: ${String(err)}`);
+			const detail = err instanceof Error ? err.message : String(err);
+			getMimoOutput().appendLine(`[controlCenter] refresh failed: ${detail}`);
 			// Last resort: still try to show whatever debug turns we have.
 			await this.pushDebugSnapshot();
+			return { ok: false, error: detail };
 		}
 	}
 
@@ -276,7 +309,7 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
 				break;
 			}
 			case 'refresh':
-				void this.refresh({ forceAccount: true, forceBilling: true });
+				void this.refreshFromUser();
 				break;
 			case 'openConsole': {
 				const plan = getCachedBillingPlan();
@@ -356,8 +389,9 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
         <img class="mimo-ico" id="brand-icon" src="" alt="" width="28" height="15" />
         <span>Xiaomi MiMo</span>
       </span>
-      <button type="button" class="ghost" id="btn-refresh" title="刷新数据">刷新</button>
+      <button type="button" class="ghost" id="btn-refresh" title="刷新账户、账单与 Debug">刷新</button>
     </div>
+    <div class="toast" id="refresh-toast" hidden role="status" aria-live="polite"></div>
     <div class="tabs" id="tabs" role="tablist">
       <button type="button" class="active" data-tab="overview" role="tab">概览</button>
       <button type="button" data-tab="billing" role="tab">账单</button>
@@ -369,6 +403,10 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
         <div class="banner" id="banner-overview">
           <span class="info-dot" aria-hidden="true">i</span>
           <div id="banner-text">余额不足</div>
+        </div>
+        <div class="banner banner-warn" id="banner-tool-loop" hidden>
+          <span class="info-dot" aria-hidden="true">!</span>
+          <div id="banner-tool-loop-text"></div>
         </div>
         <div class="payg-only balance">
           <div>
@@ -524,6 +562,7 @@ class ControlCenterProvider implements vscode.WebviewViewProvider {
             <tr><td>Max Completion</td><td id="cfg-max-tok">—</td></tr>
             <tr><td>Web Search</td><td id="cfg-websearch">—</td></tr>
             <tr><td>Currency</td><td id="cfg-currency">—</td></tr>
+            <tr><td>Tool loop warn</td><td id="cfg-tool-loop">—</td></tr>
           </tbody>
         </table>
         <div class="actions">

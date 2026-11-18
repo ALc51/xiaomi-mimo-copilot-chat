@@ -191,6 +191,43 @@ body.cc-body {
   min-width: 0;
 }
 
+.toast {
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  color: var(--bright);
+}
+
+.toast[hidden] {
+  display: none !important;
+}
+
+.toast.is-loading {
+  border-color: var(--focus);
+  background: var(--accent-tint);
+}
+
+.toast.is-ok {
+  border-color: color-mix(in srgb, var(--ok-fg) 55%, var(--border));
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.toast.is-error {
+  border-color: color-mix(in srgb, var(--err-fg) 55%, var(--border));
+  background: var(--err-bg);
+  color: var(--err-fg);
+}
+
+#btn-refresh:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .side-head {
   display: flex;
   align-items: center;
@@ -434,8 +471,29 @@ body.cc-body {
   align-items: flex-start;
 }
 
-body.exhausted .banner {
+body.exhausted .banner#banner-overview {
   display: flex;
+}
+
+.banner.banner-warn {
+  display: none;
+  border-color: var(--vscode-inputValidation-warningBorder, #cca700);
+  background: color-mix(in srgb, var(--vscode-inputValidation-warningBackground, #7a7100) 35%, transparent);
+  color: var(--bright);
+}
+
+body.tool-loop .banner.banner-warn {
+  display: flex;
+}
+
+.banner.banner-warn[hidden] {
+  display: none !important;
+}
+
+.debug-summary .v.warn {
+  color: var(--vscode-list-warningForeground, #cca700);
+  white-space: normal;
+  text-align: left;
 }
 
 .info-dot {

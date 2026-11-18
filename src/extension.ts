@@ -11,6 +11,7 @@ import { registerStatusPanel } from './statusPanel';
 import { disposeMimoOutput } from './output';
 import { disposeBillingHistory } from './billingHistory';
 import { sessionStats } from './sessionStats';
+import { toolCallLoopGuard } from './toolCallLoopGuard';
 
 export function activate(context: vscode.ExtensionContext): void {
 	const perf = new PerfStatus(context);
@@ -22,7 +23,8 @@ export function activate(context: vscode.ExtensionContext): void {
 		{ dispose: () => sessionStats.dispose() },
 		{ dispose: () => clearReasoningCache() },
 		{ dispose: () => disposeBillingHistory() },
-		{ dispose: () => disposeMimoOutput() }
+		{ dispose: () => disposeMimoOutput() },
+		{ dispose: () => toolCallLoopGuard.dispose() }
 	);
 
 	registerStatusPanel(context);

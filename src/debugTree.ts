@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { friendlyModelName, formatDuration as fmtDuration } from './display';
 import { formatCacheHitPercent } from './usage';
 import { debugStore, ModelTurn, ModelTurnToolCall } from './debugStore';
+import { toolCallLoopGuard } from './toolCallLoopGuard';
 
 function costLabel(turn: ModelTurn): string | undefined {
 	return turn.cost?.label;
@@ -50,8 +51,11 @@ function turnLabel(turn: ModelTurn): string {
 	return parts.join(' · ');
 }
 
-function turnIcon(status: ModelTurn['status']): vscode.ThemeIcon {
-	switch (status) {
+function turnIcon(turn: ModelTurn): vscode.ThemeIcon {
+	if (turn.loopWarning && turn.status !== 'failure' && turn.status !== 'canceled') {
+		return new vscode.ThemeIcon('warning');
+	}
+	switch (turn.status) {
 		case 'success':
 			return new vscode.ThemeIcon('check');
 		case 'failure':
@@ -87,7 +91,7 @@ export class MimoDebugTreeProvider implements vscode.TreeDataProvider<TreeNode>,
 		if (element.kind === 'turn') {
 			const item = new vscode.TreeItem(turnLabel(element.turn), vscode.TreeItemCollapsibleState.Collapsed);
 			item.contextValue = 'mimoDebugTurn';
-			item.iconPath = turnIcon(element.turn.status);
+			item.iconPath = turnIcon(element.turn);
 			item.tooltip = new vscode.MarkdownString(
 				[
 					`**${friendlyModelName(element.turn.model)}** \`${element.turn.id}\``,
@@ -96,6 +100,7 @@ export class MimoDebugTreeProvider implements vscode.TreeDataProvider<TreeNode>,
 					element.turn.toolCalls.length
 						? `Tools: ${element.turn.toolCalls.map((c) => c.name).join(', ')}`
 						: undefined,
+					element.turn.loopWarning ? `Loop: ${element.turn.loopWarning}` : undefined,
 					element.turn.error ? `Error: ${element.turn.error}` : undefined,
 				]
 					.filter(Boolean)
@@ -303,6 +308,10 @@ function renderTurnMarkdown(turn: ModelTurn): string {
 		);
 	}
 
+	if (turn.loopWarning) {
+		lines.push('## Tool Loop Warning', '', turn.loopWarning, '');
+	}
+
 	if (turn.toolCalls.length) {
 		lines.push('## Tool Calls (response)', '');
 		for (const call of turn.toolCalls) {
@@ -424,6 +433,7 @@ export function registerDebugViews(context: vscode.ExtensionContext): void {
 		}),
 		vscode.commands.registerCommand('xiaomi-mimo.debug.clear', () => {
 			debugStore.clear();
+			toolCallLoopGuard.clear();
 		}),
 		vscode.commands.registerCommand('xiaomi-mimo.debug.openDetail', async (arg?: unknown) => {
 			let turnId: string | undefined;

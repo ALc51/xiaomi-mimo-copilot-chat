@@ -19,6 +19,11 @@ import {
 	truncate,
 } from './debugLog';
 import { debugStore, ModelTurn, ModelTurnToolCall } from './debugStore';
+import {
+	DEFAULT_TOOL_LOOP_WARN_AT,
+	formatToolLoopAlertMessage,
+	toolCallLoopGuard,
+} from './toolCallLoopGuard';
 
 export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 	private readonly _onDidChange = new vscode.EventEmitter<void>();
@@ -46,6 +51,7 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 			debugLogRequests: cfg.get<boolean>('debugLogRequests', false),
 			debugLogBodies: cfg.get<boolean>('debugLogBodies', false),
 			estimateCurrency: cfg.get<'auto' | 'cny' | 'usd'>('estimateCurrency', 'auto'),
+			toolCallLoopWarnAt: cfg.get<number>('toolCallLoopWarnAt', DEFAULT_TOOL_LOOP_WARN_AT),
 		};
 	}
 
@@ -176,6 +182,7 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 		let lastFinishReason: string | undefined;
 		const abnormalFinishNotes: string[] = [];
 		const toolCalls: ModelTurnToolCall[] = [];
+		let loopWarning: string | undefined;
 		const requestId = randomUUID().slice(0, 8);
 		const debug = settings.debugLogRequests;
 		const messageSummary = summarizeMessages(openaiMessages);
@@ -221,6 +228,7 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 			cost: lastCost,
 			ttftMs: firstTokenAt !== undefined ? firstTokenAt - started : undefined,
 			durationMs: Date.now() - started,
+			loopWarning,
 			...partial,
 		});
 
@@ -296,7 +304,20 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 						name: call.name,
 						argumentsPreview: truncate(call.arguments || '', 400),
 					});
-					if (debug) {
+					const loop = toolCallLoopGuard.record({
+						name: call.name,
+						arguments: call.arguments,
+						threshold: settings.toolCallLoopWarnAt,
+						requestId,
+					});
+					if (loop.alert && settings.toolCallLoopWarnAt > 0) {
+						loopWarning = formatToolLoopAlertMessage(loop.alert);
+					}
+					if (loop.shouldAlert && loop.alert) {
+						const msg = formatToolLoopAlertMessage(loop.alert);
+						this.perf.log(`⚠️ request ${requestId}: ${msg}`);
+						progress.report(new vscode.LanguageModelTextPart(`\n\n⚠️ ${msg}`));
+					} else if (debug) {
 						this.perf.log(`request ${requestId}: tool_call ${call.name} id=${call.id}`);
 					}
 					progress.report(new vscode.LanguageModelToolCallPart(call.id, call.name, input));
@@ -352,10 +373,17 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 					baseUrl: settings.baseUrl,
 				});
 			}
+			if (toolCalls.length === 0) {
+				toolCallLoopGuard.noteNonToolTurn();
+			}
 			const finishNote =
 				abnormalFinishNotes.length > 0
 					? abnormalFinishNotes[abnormalFinishNotes.length - 1]
 					: undefined;
+			const activeLoop = toolCallLoopGuard.getAlert();
+			if (activeLoop && settings.toolCallLoopWarnAt > 0) {
+				loopWarning = formatToolLoopAlertMessage(activeLoop);
+			}
 			flushStore(
 				{
 					status: finishNote ? 'failure' : 'success',
@@ -386,6 +414,9 @@ export class MimoChatModelProvider implements vscode.LanguageModelChatProvider {
 		} catch (err) {
 			const durationMs = Date.now() - started;
 			const ttftMs = firstTokenAt !== undefined ? firstTokenAt - started : undefined;
+			if (toolCalls.length === 0) {
+				toolCallLoopGuard.noteNonToolTurn();
+			}
 			if (token.isCancellationRequested || abort.signal.aborted) {
 				flushStore({ status: 'canceled', durationMs, ttftMs, error: 'cancelled' }, true);
 				if (debug) {

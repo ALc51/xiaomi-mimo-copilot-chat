@@ -50,6 +50,7 @@
 | `xiaomiMimo.showPerfStatusBar` | 状态栏性能与费用 | `true` |
 | `xiaomiMimo.estimateCurrency` | 按量费用币种：`auto` / `cny` / `usd` | `auto` |
 | `xiaomiMimo.debugLogRequests` | Output 通道写请求摘要（不含 Key） | `false` |
+| `xiaomiMimo.toolCallLoopWarnAt` | 相同 tool call（名称+参数）连续达到 N 次时，在 Output / 控制中心告警；`0` 关闭 | `3` |
 
 **Token Plan**：把 `baseUrl` 改为控制台专属地址（如 `https://token-plan-cn.xiaomimimo.com/v1`），并使用对应 Key。**不可与按量 Key/URL 混用。**
 
@@ -67,6 +68,7 @@
 | Chat 里选不到已勾选的模型 | 确认选的是厂商 **Xiaomi MiMo**，不是 Custom Endpoint「MiMo」 |
 | 401 / 套餐报错 | 检查 Key 前缀与 Base URL 是否同为按量或 Token Plan |
 | Agent 工具调用异常 | 保持 `thinking=auto`（有 tools 时会关思考，符合官方建议） |
+| Agent 反复同一 MCP/工具 | 控制中心 / Output 会出现 tool loop 告警；点 Stop，调低 `chat.agent.maxRequests`，或关掉 Allow all |
 | Output 里 Copilot `TaskApiError: 429` | 与 MiMo 无关，可忽略 |
 
 ## 开发

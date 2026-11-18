@@ -36,6 +36,8 @@ export interface ModelTurn {
 	textChunkCount?: number;
 	thinkingChunkCount?: number;
 	error?: string;
+	/** Consecutive identical tool-call streak warning for this turn (Agent loop smell). */
+	loopWarning?: string;
 }
 
 const DEFAULT_CAPACITY = 100;
